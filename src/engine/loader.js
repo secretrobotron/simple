@@ -1,28 +1,56 @@
 define(['util/lang', 'util/observer'], function(LangUtils, Observer){
   
-  var __groups = [];
+  var __groups = null;
   var __loaders = {};
   var __assets = {};
 
-  function LoadGroup(items, callback){
+  function Item(url, loader){
+    var _data = null;
+    var _loading = false;
+    var loadItem = {
+      url: url,
+      get: function(callback){
+        if(!_data){
+          if(!_loading){
+            loader(url, function(item){
+              _data = item;
+              loadItem.observer.notify('loaded', _data);
+            });
+            _loading = true;
+          }
+          loadItem.observer.subscribe('loaded', function loaded(){
+            callback(_data);
+            loadItem.observer.unsubscribe('loaded', loaded); 
+          });
+        }
+        else{
+          setTimeout(function(){
+            callback(_data);
+          }, 0);
+        }
+      }
+    };
+    Observer.extend(loadItem);
+    return loadItem;
+  }
+
+  function Group(items, callback){
     var _toLoad = items.length;
     var _loaded = 0;
     var _loadedItems = {};
 
     if(callback){
-      Loader.observer.subscribe('loaded', function loaded(){
+      Loader.observer.subscribe('loaded-group', function loaded(){
         callback(_loadedItems);
-        Loader.observer.unsubscribe('loaded', loaded);
+        Loader.observer.unsubscribe('loaded-group', loaded);
       });
     }
 
     return {
       load: function(internalCallback){
-    
-        function load(item){
-          var loadFunction = item.load;
+        function loadItem(item){
           var url = item.url;
-          loadFunction(url, function(item){
+          item.get(function(item){
             __assets[url] = item;
             _loadedItems[url] = item;
             if(++_loaded === _toLoad){
@@ -33,12 +61,9 @@ define(['util/lang', 'util/observer'], function(LangUtils, Observer){
 
         for (var i = items.length - 1; i >= 0; i--) {
           if(!__assets[items[i].url]){
-            load(items[i]);
+            __assets[items[i].url] = Item(items[i].url, items[i].load);
           }
-          else{
-            ++_loaded;
-            setTimeout(internalCallback, 0);
-          }
+          loadItem(__assets[items[i].url]);
         }
       },
 
@@ -50,7 +75,7 @@ define(['util/lang', 'util/observer'], function(LangUtils, Observer){
   }
 
 
-  function startLoad(groups){
+  function startLoad(groups, generalCallback){
     var toLoad = groups.length;
     var loaded = 0;
     var loadedItems = [];
@@ -58,6 +83,7 @@ define(['util/lang', 'util/observer'], function(LangUtils, Observer){
     function onLoaded(items){
       loadedItems = loadedItems.concat(items);
       if(++loaded === toLoad){
+        generalCallback(loadedItems);
         Loader.observer.notify('loaded', loadedItems);
       }
     }
@@ -68,7 +94,12 @@ define(['util/lang', 'util/observer'], function(LangUtils, Observer){
 
   var Loader = Observer.extend({
 
+    gather: function(){
+      __groups = [];
+    },
+
     add: function(items, callback){
+      callback = callback || function(){};
       if(!Array.isArray(items)){
         items = [items];
       }
@@ -78,17 +109,21 @@ define(['util/lang', 'util/observer'], function(LangUtils, Observer){
         var url = items[i].url;
         loaders.push(Loader.create(loaderType, url));
       };
-      __groups.push(LoadGroup(loaders, callback));
+      if(!__groups){
+        Group(loaders).load(callback);
+      }
+      else{
+        __groups.push(Group(loaders, callback));
+      }
+      
     },
 
     load: function(groupCallback){
       var groups = __groups;
-      __groups = [];
-      Loader.observer.subscribe('loaded', function loaded(items){
-        groupCallback(items);
-        Loader.observer.unsubscribe('loaded', loaded);
-      });
-      startLoad(groups);
+      if(__groups){
+        startLoad(groups, groupCallback);
+      }
+      __groups = null;
     },
 
     register: function(name, ctor){

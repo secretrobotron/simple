@@ -2,6 +2,7 @@ require(['./include', 'engine/scene', 'engine/entity', 'engine/schedule', 'engin
   function(Include, Scene, Entity, Schedule, Loader){
 
   Schedule.start();
+  Loader.gather();
 
   var scene = Scene.create();
   var parentEntity = Entity.create('test', 'herp', 'derp');
@@ -11,6 +12,7 @@ require(['./include', 'engine/scene', 'engine/entity', 'engine/schedule', 'engin
   parentEntity.addChild(childEntity);
 
   Loader.load(function(items){
+    console.log('general', items);
   });
 
   parentEntity.components.transform.position[0] = 1;

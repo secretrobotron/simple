@@ -13,7 +13,7 @@ define(['engine/entity'], function(Entity){
       var modelComponent = components.model;
 
       entity.event.add('loaded', function(items){
-        console.log('group loaded', items)
+        console.log('group loaded', items);
       });
       
     });

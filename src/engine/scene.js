@@ -39,7 +39,9 @@ define(['util/observer'], function(Observer){
       return scene;
 
     }
-  }
+  };
+
+  Scene.scenes = __scenes;
 
   Observer.extend(Scene);
 

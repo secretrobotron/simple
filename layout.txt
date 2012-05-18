@@ -1,0 +1,51 @@
+entity: {
+  Entity: {
+    children,
+    addChild,
+    removeChild,
+    addComponent,
+    removeComponent  
+  },
+  create,
+  register,
+  getTypes
+}
+
+component: {
+  Component: {
+    bind,
+    unbind  
+  },
+  create,
+  register,
+  getTypes
+}
+
+scene: {
+  Scene: {
+    addEntity,
+    removeEntity,
+    enable,
+    disable,
+    destroy
+  },
+  scenes
+}
+
+schedule: {
+  start,
+  stop,
+  on,
+  off
+}
+
+loader: {
+  Loader: {
+    create
+  },
+  add,
+  load,
+  register,
+  create,
+  getTypes
+}
