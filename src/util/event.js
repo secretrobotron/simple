@@ -1,4 +1,4 @@
-define([], function(){
+define(['./lang'], function(LangUtils){
 
   var __callbackPool = [];
 
@@ -31,14 +31,9 @@ define([], function(){
     var list = callbacks[name];
     if(list){
       list = list.slice();
-      var context = {
-        name: name,
-        data: data,
-        origin: origin
-      };
       for(var i = 0, l = list.length; i < l; ++i){
         __callbackPool.push({
-          context: context,
+          context: data,
           callback: list[i]
         });
       }
@@ -64,6 +59,8 @@ define([], function(){
         dispatch(name, data, _callbacks, object);
       }
     };
+
+    return object;
 
   }
 

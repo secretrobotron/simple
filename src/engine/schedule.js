@@ -12,8 +12,8 @@ define(["util/event", "util/observer"], function(Event, Observer){
   })();
 
   var __phases = [
-    Event.flush,
     'update',
+    Event.flush,
     'render'
   ];
 

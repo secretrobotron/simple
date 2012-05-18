@@ -1,4 +1,4 @@
-define([], function(){
+define(['./lang'], function(LangUtils){
 
   function subscribe(name, callback, callbacks){
     if(!callbacks[name]){
@@ -20,13 +20,8 @@ define([], function(){
     var list = callbacks[name];
     if(list){
       list = list.slice();
-      var callbackContext = {
-        name: name,
-        data: data,
-        origin: origin
-      };
       for(var i = 0, l = list.length; i < l; ++i){
-        list[i](callbackContext);
+        list[i](data);
       }
     }
   }
@@ -35,7 +30,7 @@ define([], function(){
 
     var _callbacks = {};
 
-    object.observe = {
+    object.observer = {
       subscribe: function(name, callback){
         subscribe(name, callback, _callbacks);
       },
@@ -46,6 +41,8 @@ define([], function(){
         notify(name, data, _callbacks, object);
       }
     };
+
+    return object;
 
   }
   
