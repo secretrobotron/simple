@@ -23,9 +23,32 @@
 
   var __lastTime = 0;
 
+  var __selectedTrack;
+
   var CELL_HEIGHT_FACTOR = 2;
 
   var __keyFunctions = {
+    ' ': function(e){
+      e.preventDefault();
+      if(__selectedTrack){
+        var trackEvent = document.createElement('div');
+        trackEvent.className = 'track-event';
+        __selectedTrack.appendChild(trackEvent);
+        trackEvent.style.top = __audio.currentTime / __audio.duration * __tracker.offsetHeight + 'px';
+        trackEvent.setAttribute('data-time', __audio.currentTime);
+      }
+      if(document.body.scrollTop + window.innerWidth < __playhead.offsetTop || document.body.scrollTop > __playhead.offsetTop){
+        trackPlayhead();
+      }
+    },
+
+    't': function(){
+      trackPlayhead();
+    },
+
+    'd': function(){
+      removeTrack(__selectedTrack);
+    },
 
     'v': function(){
       __audio.paused ? __audio.play() : __audio.pause();
@@ -35,13 +58,13 @@
       __audio.currentTime = 0;
     },
 
-    'q': function(){
-      setBPS(__bps-1);
+    'q': function(e){
+      setBPS(__bps - (e.shiftKey ? 0.1 : 1));
       __beatStartTime = -1;
     },
 
-    'e': function(){
-      setBPS(__bps+1);
+    'e': function(e){
+      setBPS(__bps + (e.shiftKey ? 0.1 : 1));
       __beatStartTime = -1;
     },
 
@@ -59,15 +82,45 @@
         __beatStartTime = -1;
         setBPS(A_MINUTE/duration);
       }
+    },
+
+    'o': function(){
+      removeTrack(__tracker.firstChild);
+    },
+
+    'p': function(){
+      addTrack('Track' + (__numTracks + 1));
+    },
+
+    'j': function(){
+      var data = {
+        tracks: {}
+      };
+      for (var i = __tracker.childNodes.length - 1; i >= 0; i--) {
+        var track = __tracker.childNodes[__numTracks - i - 1];
+        var eventArray = data.tracks[track.getAttribute('data-name')] = [];
+        for (var j = track.childNodes.length - 1; j >= 0; j--) {
+          eventArray.push(Number(track.childNodes[track.childNodes.length - j - 1].getAttribute('data-time')));
+        };
+      };
+      document.getElementsByTagName('textarea')[0].value = JSON.stringify(data, null, 2);
     }
 
   };
 
-  function addTrack(title){
-    ++__numTracks;
-    var track = document.createElement('div');
-    track.className = 'track';
-    __tracker.appendChild(track);
+  function trackPlayhead(){
+    document.body.scrollTop = __playhead.offsetTop;
+  }
+
+  function selectTrack(track){
+    for (var i = __tracker.childNodes.length - 1; i >= 0; i--) {
+      __tracker.childNodes[i].classList.remove('selected');
+    }
+    track.classList.add('selected');
+    __selectedTrack = track;
+  }
+
+  function resizeTracks(){
     var trackIndex = 0;
     for (var i = __tracker.childNodes.length - 1; i >= 0; i--) {
       var node = __tracker.childNodes[i];
@@ -75,24 +128,49 @@
         node.style.width = __tracker.offsetWidth / __numTracks + 'px';
         node.style.left = __tracker.offsetWidth / __numTracks * trackIndex++ + 'px';
       }
-    }
-    
+    }    
   }
 
+  function addTrack(title){
+    ++__numTracks;
+    var track = document.createElement('div');
+    track.className = 'track';
+    __tracker.insertBefore(track, __tracker.firstChild);
+    resizeTracks();
+    track.addEventListener('click', function(){
+      selectTrack(track);
+    });
+    track.setAttribute('data-name', title);
+  }
+
+  function removeTrack(track){
+    --__numTracks;
+    __tracker.removeChild(track);
+    resizeTracks();
+  }
+
+  var __beatAccumulator = 0;
   function loop(){
+    var beatDuration = 60000 / __bps;
     var time = Date.now();
+    var elapsed = time - __lastTime;
+    __beatAccumulator += elapsed;
+    __beatPulser.style.background = 'rgba(0, 0, 255, ' + (beatDuration - __beatAccumulator)/beatDuration + ')';
     __lastTime = time;
     requestAnimFrame(loop);
     __playhead.style.top = __audio.currentTime / __audio.duration * __tracker.offsetHeight + 'px';
+    if(__beatAccumulator > beatDuration){
+      __beatAccumulator = 0;
+    }
   }
 
   function setBPS(bps){
-    __bps = Math.round(bps);
+    __bps = Math.round(bps * 100) / 100;
     var time = A_MINUTE/__bps;
-    __beatPulser.style.MozAnimation = 'pulse ' + time + ' infinite';
-    __beatPulser.style.webkitAnimation = 'pulse ' + time + ' infinite';
-    __beatPulser.style.animation = 'pulse ' + time + ' infinite';
-    __beatPulser.classList.add('pulse');
+    // __beatPulser.style.MozAnimation = 'pulse ' + time + ' infinite';
+    // __beatPulser.style.webkitAnimation = 'pulse ' + time + ' infinite';
+    // __beatPulser.style.animation = 'pulse ' + time + ' infinite';
+    // __beatPulser.classList.add('pulse');
     document.getElementById('bpm').innerHTML = __bps;
     __tracker.style.height = __bps * __audio.duration / 7.5 + 'px';
   }
